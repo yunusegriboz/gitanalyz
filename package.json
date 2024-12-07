@@ -1,0 +1,23 @@
+{
+  "name": "gitanalyz",
+  "version": "2.0.0",
+  "description": "Git log analyzer CLI tool",
+  "main": "index.js",
+  "bin": {
+    "gitanalyz": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "git",
+    "gitlog",
+    "analyzer",
+    "cli"
+  ],
+  "author": "tikhi",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
