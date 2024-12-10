@@ -42,6 +42,33 @@ function getTotalCommits(callback) {
   });
 }
 
+function allcommits(callback){
+  const gitLog = spawn("git", [
+    "log",
+    "--pretty=format:%h|%ae|%ad|%s",
+    "--date=short"
+  ]);
+
+  let stdout = '';
+
+  gitLog.stdout.on("data", (data) => {
+    stdout += data.toString();
+  });
+
+  gitLog.on("close", () => {
+    const commits = stdout
+      .split("\n")
+      .filter(line => line)
+      .map(line => {
+        const [commitHash, authorEmail, commitDate, ...commitMessageParts] = line.split("|");
+        const commitMessage = commitMessageParts.join("|"); // "|" işaretlerini işler
+        return { commitHash, authorEmail, commitDate, commitMessage };
+      });
+
+    callback(commits);
+  });
+}
+
 function getLastCommitsForAuthor(authorEmail, numCommits, callback) {
   const gitLog = spawn("git", [
     "log",
@@ -124,11 +151,11 @@ function getprojectmembers(callback) {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     console.log("Project Members:");
-    console.log("----------");
+    console.log("----------------");
     projectMembers.forEach((member, index) => {
       console.log(`${index + 1}- ${member.name} - ${member.email}`);
     });
-    console.log("----------");
+    console.log("----------------");
 
     callback();
   });
@@ -140,20 +167,36 @@ function getContributionReport() {
       .sort(([, a], [, b]) => b.commits - a.commits);
 
     console.log("Contribution Report:");
-    console.log("----------");
+    console.log("--------------------");
     sortedCommits.forEach(([email, stats], index) => {
       console.log(`${index + 1}- ${stats.name} (${email}): ${stats.commits} commits`);
     });
-    console.log("----------");
+    console.log("--------------------");
   });
 }
 
 function printHelp() {
   console.log("Usage:");
-  console.log("  gitanalyz                     - List project members and their contributions.");
-  console.log("  gitanalyz <author_email>      - List all commits by the specified author.");
+  console.log("------");
+  console.log("  gitanalyz                     	 - List project members and their contributions.");
+  console.log("  gitanalyz allcommits          	 - List all commits.");
+  console.log("  gitanalyz <author_email>      	 - List all commits by the specified author.");
   console.log("  gitanalyz <author_email> last <number> - List the last N commits by the specified author.");
-  console.log("  gitanalyz -help               - Display this help message.");
+  console.log("  gitanalyz -help               	 - Display this help message.");
+  console.log("-------");
+}
+
+function printAllCommits() {
+  allcommits((commits) => {
+    console.log("All Commits:");
+    console.log("------------");
+    commits.forEach(commit => {
+      console.log(
+        `${commit.commitHash} - ${commit.commitDate} - ${commit.authorEmail} - ${commit.commitMessage}`
+      );
+    });
+    console.log("------------");
+  });
 }
 
 function handleCommandLineArgs() {
@@ -161,6 +204,11 @@ function handleCommandLineArgs() {
 
   if (args[0] === "-help") {
     printHelp();
+    return;
+  }
+
+  if (args[0] === "allcommits") {
+	printAllCommits();
     return;
   }
 
@@ -180,7 +228,7 @@ function handleCommandLineArgs() {
 
       if (args.length === 3 && args[1] === "last" && !isNaN(lastCount)) {
         getLastCommitsForAuthor(authorEmail, parseInt(lastCount), (commits) => {
-          console.log(`Last ${lastCount} commits for ${authorEmail}:`);
+          console.log(`Last ${lastCount} commits of ${authorEmail}:`);
           console.log("-----");
           commits.forEach((commit, index) => {
             const { commitId, commitDate, commitMessage } = commit;
@@ -190,7 +238,7 @@ function handleCommandLineArgs() {
         });
       } else if (args.length === 1) {
         getAllCommitsForAuthor(authorEmail, (commits) => {
-          console.log(`All commits for ${authorEmail}:`);
+          console.log(`All commits of ${authorEmail}:`);
           console.log("-----");
           commits.forEach((commit, index) => {
             const { commitId, commitDate, commitMessage } = commit;
